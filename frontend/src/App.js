@@ -379,23 +379,31 @@ function App() {
               <div className="all-categories-carousel-wrapper" style={{ transform: `translateX(-${currentCategoryIndex * 100}%)` }}>
                 {categoriesForCarousel.map((category, catIdx) => (
                   <div key={category.category} className="product-carousel-category-slide">
-                    {category.items.map((product) => (
-                      <div key={product.id} className="product-card-carousel">
-                        <div className="product-image-container-carousel">
-                          <img
-                            src={imageMap[product.name] || "/placeholder.jpg"}
-                            alt={product.name}
-                            className="product-image-carousel"
-                          />
+                    {category.items.map((product) => {
+                      const getProductImage = () => {
+                        if (product.image_url) {
+                          return `${API_ORIGIN}/uploads/${product.image_url}`;
+                        }
+                        return imageMap[product.name] || "/placeholder.jpg";
+                      };
+                      return (
+                        <div key={product.id} className="product-card-carousel">
+                          <div className="product-image-container-carousel">
+                            <img
+                              src={getProductImage()}
+                              alt={product.name}
+                              className="product-image-carousel"
+                            />
+                          </div>
+                          <div className="product-info-carousel">
+                            <h3 className="product-name-carousel">{product.name}</h3>
+                            <p className="product-category-carousel">
+                              Category: {category.category}
+                            </p>
+                          </div>
                         </div>
-                        <div className="product-info-carousel">
-                          <h3 className="product-name-carousel">{product.name}</h3>
-                          <p className="product-category-carousel">
-                            Category: {category.category}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ))}
               </div>
