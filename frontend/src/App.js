@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { API_BASE_URL, API_ORIGIN } from "./config";
 import "./App.css";
 import "./AuthForm.css";
@@ -276,24 +276,28 @@ function App() {
     }
   }, [isAuthenticated, userRole, currentPage]);
 
-  const categorizedProducts = products.length > 0
-    ? Object.values(products.reduce((acc, product) => {
-        const category = product.category || "Uncategorized";
-        if (!acc[category]) {
-          acc[category] = { category, items: [] };
-        }
-        acc[category].items.push(product);
-        return acc;
-      }, {}))
-    : productData;
+  const categorizedProducts = useMemo(() => {
+    return products.length > 0
+      ? Object.values(products.reduce((acc, product) => {
+          const category = product.category || "Uncategorized";
+          if (!acc[category]) {
+            acc[category] = { category, items: [] };
+          }
+          acc[category].items.push(product);
+          return acc;
+        }, {}))
+      : productData;
+  }, [products]);
 
-  const filteredData = categorizedProducts.map((category) => ({
-    ...category,
-    items: category.items.filter((item) =>
-      (!selectedCategory || category.category === selectedCategory) &&
-      item.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-    ),
-  }));
+  const filteredData = useMemo(() => {
+    return categorizedProducts.map((category) => ({
+      ...category,
+      items: category.items.filter((item) =>
+        (!selectedCategory || category.category === selectedCategory) &&
+        item.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+      ),
+    }));
+  }, [categorizedProducts, selectedCategory, debouncedSearchTerm]);
 
   const handleClearSearch = () => {
     setSearchTerm("");
@@ -436,7 +440,7 @@ function App() {
     );
   };
 
-  const ProductsPage = ({ setCart }) => {
+  const ProductsPage = React.memo(({ setCart }) => {
     const addToCart = async (product) => {
       try {
         const response = await fetch(`${API_BASE_URL}/cart/add`, {
@@ -489,12 +493,22 @@ function App() {
         <div className="search-container">
           <Search className="search-icon" />
           <input
+            key="search-input"
             ref={searchInputRef}
             className="search-bar"
             type="text"
             placeholder="Search for materials..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              const cursorPosition = e.target.selectionStart;
+              setSearchTerm(e.target.value);
+              // Restore cursor position after state update
+              setTimeout(() => {
+                if (searchInputRef.current) {
+                  searchInputRef.current.setSelectionRange(cursorPosition, cursorPosition);
+                }
+              }, 0);
+            }}
           />
           {searchTerm && (
             <button className="clear-button" onClick={handleClearSearch}>
@@ -546,7 +560,7 @@ function App() {
         ))}
       </div>
     );
-  };
+  });
 
   const AboutPage = () => (
     <div className="page-content">
