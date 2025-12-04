@@ -204,12 +204,27 @@ function App() {
   const fetchCart = useCallback(async () => {
     if (!isAuthenticated || userRole !== "user") return;
     try {
+      const token = localStorage.getItem("token") || localStorage.getItem("userToken");
+      if (!token) {
+        setError("Please log in to view your cart.");
+        return;
+      }
       const response = await fetch(`${API_BASE_URL}/cart`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
-      if (!response.ok) throw new Error("Failed to fetch cart");
+      if (!response.ok) {
+        if (response.status === 401) {
+          setError("Session expired. Please log in again.");
+          localStorage.removeItem("token");
+          localStorage.removeItem("userToken");
+          setIsAuthenticated(false);
+          setUserRole(null);
+          return;
+        }
+        throw new Error("Failed to fetch cart");
+      }
       const data = await response.json();
       setCart(data);
       setError(null);
@@ -312,10 +327,11 @@ function App() {
   const handleLogout = async () => {
     if (userRole === "user") {
       try {
+        const token = localStorage.getItem("token") || localStorage.getItem("userToken");
         const response = await fetch(`${API_BASE_URL}/cart/checkout`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
         });
         if (!response.ok) throw new Error("Failed to clear cart");
@@ -441,11 +457,16 @@ function App() {
   const ProductsPage = ({ setCart }) => {
     const addToCart = async (product) => {
       try {
+        const token = localStorage.getItem("token") || localStorage.getItem("userToken");
+        if (!token) {
+          setError("Please log in to add items to cart.");
+          return;
+        }
         const response = await fetch(`${API_BASE_URL}/cart/add`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ productId: product.id, quantity: 1 }),
         });
@@ -454,6 +475,14 @@ function App() {
         if (response.status === 404) {
           await fetchProducts();
           throw new Error("This product is no longer available.");
+        }
+        if (response.status === 401) {
+          setError("Session expired. Please log in again.");
+          localStorage.removeItem("token");
+          localStorage.removeItem("userToken");
+          setIsAuthenticated(false);
+          setUserRole(null);
+          return;
         }
         const text = await response.text();
         let message = "Failed to add to cart";
@@ -465,7 +494,7 @@ function App() {
         }
         const cartResponse = await fetch(`${API_BASE_URL}/cart`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
         });
         if (!cartResponse.ok) throw new Error("Failed to fetch cart");

@@ -13,7 +13,7 @@ const Cart = ({ cart, setCart, imageMap, setError }) => {
       console.log("Fetching cart...");
       setIsLoadingCart(true);
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("token") || localStorage.getItem("userToken");
         if (!token) {
           console.log("No token found, cannot fetch cart.");
           setError("Please log in to view your cart.");
@@ -30,6 +30,7 @@ const Cart = ({ cart, setCart, imageMap, setError }) => {
             console.log("Unauthorized: Token invalid or expired.");
             setError("Session expired. Please log in again.");
             localStorage.removeItem("token");
+            localStorage.removeItem("userToken");
             setIsLoadingCart(false);
             return;
           }
@@ -46,7 +47,8 @@ const Cart = ({ cart, setCart, imageMap, setError }) => {
         setIsLoadingCart(false);
       }
     };
-    if (localStorage.getItem("token")) {
+    const token = localStorage.getItem("token") || localStorage.getItem("userToken");
+    if (token) {
       fetchCart();
     } else {
       console.log("No token, skipping cart fetch.");
@@ -59,14 +61,14 @@ const Cart = ({ cart, setCart, imageMap, setError }) => {
     if (newQuantity < 1) return;
     setLoading((prev) => ({ ...prev, [productId]: true }));
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token") || localStorage.getItem("userToken");
       if (!token) {
         setError("Please log in to update cart.");
         return;
       }
       const product = cart.find((item) => item.product_id === productId);
-      if (newQuantity > product.stock) {
-        setError(`Cannot add more ${product.name}. Only ${product.stock} in stock.`);
+      if (product.stock_quantity !== undefined && newQuantity > product.stock_quantity) {
+        setError(`Cannot add more ${product.name}. Only ${product.stock_quantity} in stock.`);
         return;
       }
       const response = await fetch(`${API_BASE_URL}/cart/update`, {
@@ -81,6 +83,7 @@ const Cart = ({ cart, setCart, imageMap, setError }) => {
         if (response.status === 401) {
           setError("Session expired. Please log in again.");
           localStorage.removeItem("token");
+          localStorage.removeItem("userToken");
           return;
         }
         throw new Error("Failed to update quantity");
@@ -121,6 +124,7 @@ const Cart = ({ cart, setCart, imageMap, setError }) => {
         if (response.status === 401) {
           setError("Session expired. Please log in again.");
           localStorage.removeItem("token");
+          localStorage.removeItem("userToken");
           return;
         }
         throw new Error("Failed to remove product");
