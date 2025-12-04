@@ -734,7 +734,6 @@ export const AdminDashboard = ({ products, setProducts, error, setError, handleL
 
         {activeTab === "items" && (
           <div className="pos-section">
-            <h3>Point of Sale</h3>
             <div className="cart-notifications">
               <h3>User Cart Notifications</h3>
               {notificationError && <p className="error-message">{notificationError}</p>}
