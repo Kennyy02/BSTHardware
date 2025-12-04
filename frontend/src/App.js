@@ -205,7 +205,6 @@ function App() {
   const debouncedSearchTerm = useDebounce(searchTerm, 200);
   const searchInputRef = useRef(null);
   const hasFocusedSearchRef = useRef(false);
-
   const fetchProducts = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/products`);
