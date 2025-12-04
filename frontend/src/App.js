@@ -267,22 +267,14 @@ function App() {
   }, [isAuthenticated, userRole, currentPage]);
 
   const categorizedProducts = products.length > 0
-    ? productData.map((defaultCategory) => {
-        const matchedItems = products.filter((product) =>
-          defaultCategory.items.some((item) => item.name === product.name)
-        );
-        const allItems = defaultCategory.items.map((defaultItem) => {
-          const matched = matchedItems.find((item) => item.name === defaultItem.name);
-          return {
-            ...defaultItem,
-            ...(matched ? { id: matched.id, price: matched.price, image_url: matched.image_url, category: matched.category } : {}),
-          };
-        });
-        return {
-          category: defaultCategory.category,
-          items: allItems,
-        };
-      })
+    ? Object.values(products.reduce((acc, product) => {
+        const category = product.category || "Uncategorized";
+        if (!acc[category]) {
+          acc[category] = { category, items: [] };
+        }
+        acc[category].items.push(product);
+        return acc;
+      }, {}))
     : productData;
 
   const filteredData = categorizedProducts.map((category) => ({
