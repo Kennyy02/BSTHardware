@@ -9,6 +9,7 @@ const AuthForm = ({ setCurrentPage, setIsAuthenticated, setUserRole, setCart, se
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false); // Changed to false for default hidden
   const [consent, setConsent] = useState(false);
@@ -63,6 +64,7 @@ const AuthForm = ({ setCurrentPage, setIsAuthenticated, setUserRole, setCart, se
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
 
     try {
@@ -101,7 +103,7 @@ const AuthForm = ({ setCurrentPage, setIsAuthenticated, setUserRole, setCart, se
         }
 
         if (response.ok) {
-          setError('Sign Up successful! Please log in.');
+          setSuccess('Sign Up successful! Please log in.');
           setIsLogin(true);
           setUsername('');
           setPassword('');
@@ -194,6 +196,7 @@ const AuthForm = ({ setCurrentPage, setIsAuthenticated, setUserRole, setCart, se
   const toggleAuthMode = () => {
     setIsLogin(!isLogin);
     setError('');
+    setSuccess('');
     setUsername('');
     setPassword('');
     setEmail('');
@@ -319,6 +322,7 @@ const AuthForm = ({ setCurrentPage, setIsAuthenticated, setUserRole, setCart, se
           </div>
         )}
         {error && <div className="form-error">{error}</div>}
+        {success && <div className="form-success">{success}</div>}
         <button
           type="submit"
           className="login-button"

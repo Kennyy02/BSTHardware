@@ -111,6 +111,19 @@
   border: 1px solid #FF4081;
 }
 
+/* Form Success */
+.form-success {
+  color: #00E676;
+  font-size: 14px;
+  margin-top: 8px;
+  text-align: center;
+  animation: pulse 1s infinite;
+  background: rgba(0, 230, 118, 0.1);
+  padding: 5px;
+  border-radius: 4px;
+  border: 1px solid #00E676;
+}
+
 /* Login Button */
 .login-button {
   background: linear-gradient(135deg, #00E5FF, #00B0FF);
