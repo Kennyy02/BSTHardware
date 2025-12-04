@@ -202,7 +202,6 @@ function App() {
   const [userId, setUserId] = useState(null);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false); // New state for modal
 
-  const debouncedSearchTerm = useDebounce(searchTerm, 200);
   const searchInputRef = useRef(null);
   const hasFocusedSearchRef = useRef(false);
   const fetchProducts = useCallback(async () => {
