@@ -471,6 +471,13 @@ app.post('/api/cart/add', authenticateUser, async (req, res) => {
       return res.status(400).json({ error: 'Invalid product ID or quantity' });
     }
     const userId = req.user.id;
+    
+    // Check product stock availability
+    const [product] = await db.query('SELECT name, price, stock_quantity FROM products WHERE id = ?', [productId]);
+    if (product.length === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
     const [carts] = await db.query('SELECT id FROM carts WHERE user_id = ?', [userId]);
     let cartId;
     if (carts.length === 0) {
@@ -479,14 +486,28 @@ app.post('/api/cart/add', authenticateUser, async (req, res) => {
     } else {
       cartId = carts[0].id;
     }
+    
+    // Check current cart quantity
     const [existingItem] = await db.query(
       'SELECT id, quantity FROM cart_items WHERE cart_id = ? AND product_id = ?',
       [cartId, productId]
     );
+    
+    const currentCartQuantity = existingItem.length > 0 ? existingItem[0].quantity : 0;
+    const newTotalQuantity = currentCartQuantity + quantity;
+    
+    // Check if adding this quantity would exceed available stock
+    if (newTotalQuantity > product[0].stock_quantity) {
+      return res.status(400).json({ 
+        error: `Insufficient stock. Only ${product[0].stock_quantity} available. You already have ${currentCartQuantity} in your cart.` 
+      });
+    }
+    
+    // Update or insert cart item
     if (existingItem.length > 0) {
       await db.query(
         'UPDATE cart_items SET quantity = ? WHERE id = ?',
-        [existingItem[0].quantity + quantity, existingItem[0].id]
+        [newTotalQuantity, existingItem[0].id]
       );
     } else {
       await db.query(
@@ -494,11 +515,14 @@ app.post('/api/cart/add', authenticateUser, async (req, res) => {
         [cartId, productId, quantity]
       );
     }
+    
+    // Decrease stock in products table
+    await db.query(
+      'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?',
+      [quantity, productId]
+    );
+    
     // Log cart notification
-    const [product] = await db.query('SELECT name, price FROM products WHERE id = ?', [productId]);
-    if (product.length === 0) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
     const [user] = await db.query('SELECT username FROM users WHERE id = ?', [userId]);
     if (user.length === 0) {
       return res.status(404).json({ error: 'User not found' });
@@ -529,12 +553,43 @@ app.put('/api/cart/update', authenticateUser, async (req, res) => {
     }
     const cartId = carts[0].id;
     const [existingItem] = await db.query(
-      'SELECT id FROM cart_items WHERE cart_id = ? AND product_id = ?',
+      'SELECT id, quantity FROM cart_items WHERE cart_id = ? AND product_id = ?',
       [cartId, productId]
     );
     if (existingItem.length === 0) {
       return res.status(404).json({ error: 'Item not found in cart' });
     }
+    
+    const oldQuantity = existingItem[0].quantity;
+    const quantityDifference = quantity - oldQuantity;
+    
+    // Check product stock availability
+    const [product] = await db.query('SELECT stock_quantity FROM products WHERE id = ?', [productId]);
+    if (product.length === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    // If increasing quantity, check if enough stock is available
+    if (quantityDifference > 0) {
+      if (quantityDifference > product[0].stock_quantity) {
+        return res.status(400).json({ 
+          error: `Insufficient stock. Only ${product[0].stock_quantity} available.` 
+        });
+      }
+      // Decrease stock
+      await db.query(
+        'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?',
+        [quantityDifference, productId]
+      );
+    } else if (quantityDifference < 0) {
+      // Increase stock (restore the difference)
+      await db.query(
+        'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
+        [Math.abs(quantityDifference), productId]
+      );
+    }
+    
+    // Update cart item quantity
     await db.query(
       'UPDATE cart_items SET quantity = ? WHERE cart_id = ? AND product_id = ?',
       [quantity, cartId, productId]
@@ -556,13 +611,35 @@ app.delete('/api/cart/remove/:productId', authenticateUser, async (req, res) => 
       return res.status(404).json({ error: 'Cart not found' });
     }
     const cartId = carts[0].id;
+    
+    // Get the quantity before deleting to restore stock
+    const [cartItem] = await db.query(
+      'SELECT quantity FROM cart_items WHERE cart_id = ? AND product_id = ?',
+      [cartId, productId]
+    );
+    
+    if (cartItem.length === 0) {
+      return res.status(404).json({ error: 'Item not found in cart' });
+    }
+    
+    const quantityToRestore = cartItem[0].quantity;
+    
+    // Delete cart item
     const [result] = await db.query(
       'DELETE FROM cart_items WHERE cart_id = ? AND product_id = ?',
       [cartId, productId]
     );
+    
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Item not found in cart' });
     }
+    
+    // Restore stock
+    await db.query(
+      'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
+      [quantityToRestore, productId]
+    );
+    
     res.status(200).json({ message: 'Item removed from cart' });
   } catch (err) {
     console.error('Error removing item from cart:', err.message);

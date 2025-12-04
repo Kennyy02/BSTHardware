@@ -500,6 +500,8 @@ function App() {
         if (!cartResponse.ok) throw new Error("Failed to fetch cart");
         const cartData = await cartResponse.json();
         setCart(cartData);
+        // Refresh products to update stock display
+        await fetchProducts();
         setError(null);
       } catch (err) {
         console.error("Error adding to cart:", err);
@@ -723,6 +725,7 @@ function App() {
             imageMap={imageMap}
             userId={userId}
             setError={setError}
+            fetchProducts={fetchProducts}
           />
         )}
         {currentPage === "adminDashboard" && isAuthenticated && userRole === "admin" && (

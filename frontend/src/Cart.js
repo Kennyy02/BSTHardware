@@ -3,7 +3,7 @@ import { API_BASE_URL } from "./config";
 import { X, Plus, Minus } from "lucide-react";
 import "./Cart.css";
 
-const Cart = ({ cart, setCart, imageMap, setError }) => {
+const Cart = ({ cart, setCart, imageMap, setError, fetchProducts }) => {
   const [loading, setLoading] = useState({});
   const [isLoadingCart, setIsLoadingCart] = useState(true);
 
@@ -97,6 +97,10 @@ const Cart = ({ cart, setCart, imageMap, setError }) => {
       const cartData = await cartResponse.json();
       console.log("Cart updated:", cartData);
       setCart(cartData);
+      // Refresh products to update stock display
+      if (fetchProducts) {
+        await fetchProducts();
+      }
       setError(null);
     } catch (err) {
       console.error("Error updating quantity:", err.message);
@@ -138,6 +142,10 @@ const Cart = ({ cart, setCart, imageMap, setError }) => {
       const cartData = await cartResponse.json();
       console.log("Item removed, new cart:", cartData);
       setCart(cartData);
+      // Refresh products to update stock display
+      if (fetchProducts) {
+        await fetchProducts();
+      }
       setError(null);
       alert("Item removed from cart.");
     } catch (err) {
