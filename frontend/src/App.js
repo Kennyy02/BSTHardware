@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { API_BASE_URL, API_ORIGIN } from "./config";
 import "./App.css";
 import "./AuthForm.css";
@@ -204,6 +204,7 @@ function App() {
 
   const debouncedSearchTerm = useDebounce(searchTerm, 200);
   const searchInputRef = useRef(null);
+  const hasFocusedSearchRef = useRef(false);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -256,21 +257,21 @@ function App() {
     if (role) setUserRole(role);
   }, [currentPage, products.length, isAuthenticated, userRole, fetchProducts, fetchCart]);
 
-  // Separate effect to focus search input only when navigating to products page
-  const prevPageRef = useRef(currentPage);
+  // Separate effect to focus search input only when first navigating to products page
   useEffect(() => {
-    // Only focus if we just navigated TO the products page (not if we're already on it)
-    if (currentPage === "products" && prevPageRef.current !== "products" && searchInputRef.current) {
-      // Use setTimeout to ensure the input is rendered before focusing
+    if (currentPage === "products" && !hasFocusedSearchRef.current && searchInputRef.current) {
       const timer = setTimeout(() => {
         if (searchInputRef.current) {
           searchInputRef.current.focus();
+          hasFocusedSearchRef.current = true;
         }
       }, 100);
-      prevPageRef.current = currentPage;
       return () => clearTimeout(timer);
     }
-    prevPageRef.current = currentPage;
+    // Reset the flag when leaving products page
+    if (currentPage !== "products") {
+      hasFocusedSearchRef.current = false;
+    }
   }, [currentPage]);
 
   // Add an effect to navigate to products page on successful authentication for users
@@ -280,47 +281,39 @@ function App() {
     }
   }, [isAuthenticated, userRole, currentPage]);
 
-  const categorizedProducts = useMemo(() => {
-    return products.length > 0
-      ? Object.values(products.reduce((acc, product) => {
-          const category = product.category || "Uncategorized";
-          if (!acc[category]) {
-            acc[category] = { category, items: [] };
-          }
-          acc[category].items.push(product);
-          return acc;
-        }, {}))
-      : productData;
-  }, [products]);
+  const categorizedProducts = products.length > 0
+    ? Object.values(products.reduce((acc, product) => {
+        const category = product.category || "Uncategorized";
+        if (!acc[category]) {
+          acc[category] = { category, items: [] };
+        }
+        acc[category].items.push(product);
+        return acc;
+      }, {}))
+    : productData;
 
-  const filteredData = useMemo(() => {
-    return categorizedProducts.map((category) => ({
-      ...category,
-      items: category.items.filter((item) =>
-        (!selectedCategory || category.category === selectedCategory) &&
-        item.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-      ),
-    }));
-  }, [categorizedProducts, selectedCategory, debouncedSearchTerm]);
+  const filteredData = categorizedProducts.map((category) => ({
+    ...category,
+    items: category.items.filter((item) =>
+      (!selectedCategory || category.category === selectedCategory) &&
+      item.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+    ),
+  }));
 
-  const handleSearchChange = useCallback((e) => {
-    setSearchTerm(e.target.value);
-  }, []);
-
-  const handleClearSearch = useCallback(() => {
+  const handleClearSearch = () => {
     setSearchTerm("");
     if (searchInputRef.current) {
       searchInputRef.current.focus();
     }
-  }, []);
+  };
 
-  const handleCancel = useCallback(() => {
+  const handleCancel = () => {
     setSearchTerm("");
     setSelectedCategory(null);
     if (searchInputRef.current) {
       searchInputRef.current.focus();
     }
-  }, []);
+  };
 
   const handleLogout = async () => {
     if (userRole === "user") {
@@ -506,7 +499,7 @@ function App() {
             type="text"
             placeholder="Search for materials..."
             value={searchTerm}
-            onChange={handleSearchChange}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
           {searchTerm && (
             <button className="clear-button" onClick={handleClearSearch}>
