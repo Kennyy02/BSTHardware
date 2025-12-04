@@ -257,16 +257,20 @@ function App() {
   }, [currentPage, products.length, isAuthenticated, userRole, fetchProducts, fetchCart]);
 
   // Separate effect to focus search input only when navigating to products page
+  const prevPageRef = useRef(currentPage);
   useEffect(() => {
-    if (currentPage === "products" && searchInputRef.current) {
+    // Only focus if we just navigated TO the products page (not if we're already on it)
+    if (currentPage === "products" && prevPageRef.current !== "products" && searchInputRef.current) {
       // Use setTimeout to ensure the input is rendered before focusing
       const timer = setTimeout(() => {
         if (searchInputRef.current) {
           searchInputRef.current.focus();
         }
       }, 100);
+      prevPageRef.current = currentPage;
       return () => clearTimeout(timer);
     }
+    prevPageRef.current = currentPage;
   }, [currentPage]);
 
   // Add an effect to navigate to products page on successful authentication for users
@@ -299,20 +303,24 @@ function App() {
     }));
   }, [categorizedProducts, selectedCategory, debouncedSearchTerm]);
 
-  const handleClearSearch = () => {
+  const handleSearchChange = useCallback((e) => {
+    setSearchTerm(e.target.value);
+  }, []);
+
+  const handleClearSearch = useCallback(() => {
     setSearchTerm("");
     if (searchInputRef.current) {
       searchInputRef.current.focus();
     }
-  };
+  }, []);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setSearchTerm("");
     setSelectedCategory(null);
     if (searchInputRef.current) {
       searchInputRef.current.focus();
     }
-  };
+  }, []);
 
   const handleLogout = async () => {
     if (userRole === "user") {
@@ -440,7 +448,7 @@ function App() {
     );
   };
 
-  const ProductsPage = React.memo(({ setCart }) => {
+  const ProductsPage = ({ setCart }) => {
     const addToCart = async (product) => {
       try {
         const response = await fetch(`${API_BASE_URL}/cart/add`, {
@@ -493,22 +501,12 @@ function App() {
         <div className="search-container">
           <Search className="search-icon" />
           <input
-            key="search-input"
             ref={searchInputRef}
             className="search-bar"
             type="text"
             placeholder="Search for materials..."
             value={searchTerm}
-            onChange={(e) => {
-              const cursorPosition = e.target.selectionStart;
-              setSearchTerm(e.target.value);
-              // Restore cursor position after state update
-              setTimeout(() => {
-                if (searchInputRef.current) {
-                  searchInputRef.current.setSelectionRange(cursorPosition, cursorPosition);
-                }
-              }, 0);
-            }}
+            onChange={handleSearchChange}
           />
           {searchTerm && (
             <button className="clear-button" onClick={handleClearSearch}>
@@ -560,7 +558,7 @@ function App() {
         ))}
       </div>
     );
-  });
+  };
 
   const AboutPage = () => (
     <div className="page-content">
