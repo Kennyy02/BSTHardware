@@ -409,6 +409,9 @@ function App() {
                             <p className="product-category-carousel">
                               Category: {category.category}
                             </p>
+                            <p className="product-stock-carousel">
+                              Stock: {product.stock_quantity || 0}
+                            </p>
                           </div>
                         </div>
                       );
@@ -538,6 +541,7 @@ function App() {
                     <div className="product-info">
                       <h4 className="product-name">{item.name}</h4>
                       <p className="product-price">Price: ₱{item.price}</p>
+                      <p className="product-stock">Stock: {item.stock_quantity || 0}</p>
                       {userRole !== "admin" && (
                         <button
                           className="add-to-cart-button"

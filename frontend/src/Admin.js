@@ -25,6 +25,7 @@ export const AdminDashboard = ({ products, setProducts, error, setError, handleL
     price: "",
     image: null,
     category: "",
+    stock_quantity: "",
   });
   const [formError, setFormError] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -185,6 +186,10 @@ export const AdminDashboard = ({ products, setProducts, error, setError, handleL
       setFormError("Price must be positive.");
       return;
     }
+    if (formData.stock_quantity !== "" && (isNaN(parseInt(formData.stock_quantity)) || parseInt(formData.stock_quantity) < 0)) {
+      setFormError("Stock quantity must be a non-negative number.");
+      return;
+    }
 
     // Check for duplicate product name in the same category
     const isDuplicate = products.some(product => 
@@ -215,6 +220,7 @@ export const AdminDashboard = ({ products, setProducts, error, setError, handleL
     data.append("name", formData.name.trim());
     data.append("price", parseFloat(formData.price));
     data.append("category", formData.category);
+    data.append("stock_quantity", formData.stock_quantity !== "" ? parseInt(formData.stock_quantity) : 0);
     if (formData.image) {
       data.append("image", formData.image);
     }
@@ -272,7 +278,7 @@ export const AdminDashboard = ({ products, setProducts, error, setError, handleL
 
       await response.json();
       await fetchProducts();
-      setFormData({ id: null, name: "", price: "", image: null, category: "" });
+      setFormData({ id: null, name: "", price: "", image: null, category: "", stock_quantity: "" });
       setImagePreview(null);
       setFormError(isEditing ? "Product updated successfully!" : "Product added successfully!");
       setTimeout(() => setFormError(""), 3000);
@@ -296,6 +302,7 @@ export const AdminDashboard = ({ products, setProducts, error, setError, handleL
       price: (product.price || 0).toString(),
       image: null,
       category: product.category || "",
+      stock_quantity: (product.stock_quantity || 0).toString(),
     });
     setImagePreview(product.image_url ? `${API_ORIGIN}/uploads/${product.image_url}` : (imageMap[product.name] || null));
     setIsEditing(true);
@@ -446,7 +453,7 @@ export const AdminDashboard = ({ products, setProducts, error, setError, handleL
   };
 
   const handleCancelEdit = () => {
-    setFormData({ id: null, name: "", price: "", image: null, category: "" });
+    setFormData({ id: null, name: "", price: "", image: null, category: "", stock_quantity: "" });
     setImagePreview(null);
     setIsEditing(false);
     setFormError("");
@@ -605,6 +612,21 @@ export const AdminDashboard = ({ products, setProducts, error, setError, handleL
                     ))}
                   </select>
                 </div>
+                <div className="form-group">
+                  <label htmlFor="stock_quantity">Stock Quantity</label>
+                  <input
+                    id="stock_quantity"
+                    name="stock_quantity"
+                    className="form-input"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.stock_quantity}
+                    onChange={handleInputChange}
+                    placeholder="Enter stock quantity"
+                    disabled={isLoading || isLoadingProducts}
+                  />
+                </div>
                 <div className="form-actions">
                   <button type="submit" className="save-button" disabled={isLoading || isLoadingProducts}>
                     {isLoading ? "Saving..." : isEditing ? "Update Product" : "Add Product"}
@@ -672,6 +694,7 @@ export const AdminDashboard = ({ products, setProducts, error, setError, handleL
                                 <div className="product-info">
                                   <h4 className="product-name">{product.name}</h4>
                                   <p className="product-price">Price: ₱{parseFloat(product.price || 0).toFixed(2)}</p>
+                                  <p className="product-stock">Stock: {product.stock_quantity || 0}</p>
                                 </div>
                                 <div className="product-actions">
                                   <button
