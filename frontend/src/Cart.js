@@ -170,7 +170,7 @@ const Cart = ({ cart, setCart, imageMap, setError }) => {
                 <div className="cart-item-details">
                   <h3>{item.name}</h3>
                   <p>₱{item.price}</p>
-                  <p>Stock: {item.stock !== undefined ? item.stock : "N/A"}</p>
+                  <p>Stock: {item.stock_quantity !== undefined ? item.stock_quantity : 0}</p>
                 </div>
                 <div className="quantity-control">
                   <button
@@ -184,7 +184,7 @@ const Cart = ({ cart, setCart, imageMap, setError }) => {
                   <button
                     onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
                     className="quantity-btn"
-                    disabled={loading[item.product_id] || item.stock <= item.quantity}
+                    disabled={loading[item.product_id] || (item.stock_quantity !== undefined && item.stock_quantity <= item.quantity)}
                   >
                     <Plus size={16} />
                   </button>

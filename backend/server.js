@@ -451,7 +451,7 @@ app.get('/api/cart', authenticateUser, async (req, res) => {
       cartId = carts[0].id;
     }
     const [items] = await db.query(`
-      SELECT ci.product_id, ci.quantity, p.name, p.price, p.image_url
+      SELECT ci.product_id, ci.quantity, p.name, p.price, p.image_url, p.stock_quantity
       FROM cart_items ci
       JOIN products p ON ci.product_id = p.id
       WHERE ci.cart_id = ?
