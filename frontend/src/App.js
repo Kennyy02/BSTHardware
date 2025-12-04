@@ -239,9 +239,6 @@ function App() {
   useEffect(() => {
     if (currentPage === "products" || currentPage === "adminDashboard" || (currentPage === "home" && products.length === 0)) {
       fetchProducts();
-      if (currentPage === "products" && searchInputRef.current) {
-        searchInputRef.current.focus();
-      }
     }
     if (isAuthenticated && userRole === "user") {
       fetchCart();
@@ -258,6 +255,19 @@ function App() {
     const role = localStorage.getItem("role");
     if (role) setUserRole(role);
   }, [currentPage, products.length, isAuthenticated, userRole, fetchProducts, fetchCart]);
+
+  // Separate effect to focus search input only when navigating to products page
+  useEffect(() => {
+    if (currentPage === "products" && searchInputRef.current) {
+      // Use setTimeout to ensure the input is rendered before focusing
+      const timer = setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [currentPage]);
 
   // Add an effect to navigate to products page on successful authentication for users
   useEffect(() => {
@@ -485,7 +495,6 @@ function App() {
             placeholder="Search for materials..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            onFocus={(e) => e.target.setSelectionRange(e.target.value.length, e.target.value.length)}
           />
           {searchTerm && (
             <button className="clear-button" onClick={handleClearSearch}>
