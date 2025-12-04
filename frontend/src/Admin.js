@@ -39,7 +39,7 @@ export const AdminDashboard = ({ products, setProducts, error, setError, handleL
   const [isLoading, setIsLoading] = useState(false);
   const [filterCategory, setFilterCategory] = useState('');
   const [currentPage, setCurrentPage] = useState({ category: '', page: 1 });
-  const [itemsPerPage] = useState(5);
+  const [itemsPerPage] = useState(8);
 
   const categories = [
     "Construction Materials",
@@ -459,7 +459,8 @@ export const AdminDashboard = ({ products, setProducts, error, setError, handleL
         return acc;
       }
     }, []);
-    const indexOfLastItem = currentPage.page * itemsPerPage;
+    const page = currentPage.category === category ? currentPage.page : 1;
+    const indexOfLastItem = page * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     return uniqueProducts.slice(indexOfFirstItem, indexOfLastItem);
   };
