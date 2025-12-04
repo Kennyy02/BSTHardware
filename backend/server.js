@@ -63,10 +63,31 @@ const initializeDatabase = async () => {
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         price DECIMAL(10,2) NOT NULL,
+        description TEXT,
+        stock_quantity INT DEFAULT 0,
         image_url VARCHAR(255),
-        category VARCHAR(255)
+        category VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
+
+    // Check for missing columns in products table (migration)
+    const [columns] = await db.query('SHOW COLUMNS FROM products');
+    const columnNames = columns.map(c => c.Field);
+    
+    if (!columnNames.includes('description')) {
+      await db.query('ALTER TABLE products ADD COLUMN description TEXT');
+    }
+    if (!columnNames.includes('stock_quantity')) {
+      await db.query('ALTER TABLE products ADD COLUMN stock_quantity INT DEFAULT 0');
+    }
+    if (!columnNames.includes('created_at')) {
+      await db.query('ALTER TABLE products ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+    }
+    if (!columnNames.includes('updated_at')) {
+      await db.query('ALTER TABLE products ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
+    }
 
     // Create carts table
     await db.query(`
@@ -238,14 +259,18 @@ app.get('/api/products', async (req, res) => {
 app.post('/api/products', authenticateAdmin, upload.single('image'), async (req, res) => {
   console.log('Received request for /api/products (POST)');
   try {
-    const { name, price, category } = req.body;
+    const { name, price, category, description, stock_quantity, image_url } = req.body;
     if (!name || !price || !category) {
       return res.status(400).json({ error: 'Name, price, and category are required' });
     }
-    const imageUrl = req.file ? req.file.filename : null;
+    
+    // Use uploaded file filename if exists, otherwise use image_url from body
+    const finalImageUrl = req.file ? req.file.filename : (image_url || null);
+    const stock = stock_quantity ? parseInt(stock_quantity) : 0;
+
     const [result] = await db.query(
-      'INSERT INTO products (name, price, image_url, category) VALUES (?, ?, ?, ?)',
-      [name.trim(), parseFloat(price), imageUrl, category]
+      'INSERT INTO products (name, price, image_url, category, description, stock_quantity) VALUES (?, ?, ?, ?, ?, ?)',
+      [name.trim(), parseFloat(price), finalImageUrl, category, description || null, stock]
     );
     res.status(201).json({ message: 'Product added successfully', id: result.insertId });
   } catch (err) {
@@ -258,14 +283,25 @@ app.put('/api/products/:id', authenticateAdmin, upload.single('image'), async (r
   console.log('Received request for /api/products/:id (PUT)');
   try {
     const { id } = req.params;
-    const { name, price, category } = req.body;
+    const { name, price, category, description, stock_quantity, image_url } = req.body;
     if (!name || !price || !category) {
       return res.status(400).json({ error: 'Name, price, and category are required' });
     }
-    const imageUrl = req.file ? req.file.filename : null;
+
+    // Use uploaded file filename if exists, otherwise use image_url from body (if provided) or keep existing
+    // Logic: If file -> new file. If image_url string -> use that. 
+    // Note: SQL update below handles "keep existing" if we don't pass a value, but here we pass specific values.
+    
+    const finalImageUrl = req.file ? req.file.filename : (image_url || null);
+    const stock = stock_quantity ? parseInt(stock_quantity) : 0;
+
+    // Use dynamic query or COALESCE if we want to preserve existing values when null passed? 
+    // The previous implementation replaced image_url with null if no file.
+    // Here we will use the provided image_url or file.
+    
     const [result] = await db.query(
-      'UPDATE products SET name = ?, price = ?, image_url = ?, category = ? WHERE id = ?',
-      [name.trim(), parseFloat(price), imageUrl || null, category, id]
+      'UPDATE products SET name = ?, price = ?, image_url = ?, category = ?, description = ?, stock_quantity = ? WHERE id = ?',
+      [name.trim(), parseFloat(price), finalImageUrl, category, description || null, stock, id]
     );
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Product not found' });
