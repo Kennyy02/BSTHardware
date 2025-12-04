@@ -292,13 +292,13 @@ function App() {
       }, {}))
     : productData;
 
-  const filteredData = categorizedProducts.map((category) => ({
-    ...category,
-    items: category.items.filter((item) =>
-      (!selectedCategory || category.category === selectedCategory) &&
-      item.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-    ),
-  }));
+    const filteredData = categorizedProducts.map((category) => ({
+      ...category,
+      items: category.items.filter((item) =>
+        (!selectedCategory || category.category === selectedCategory) &&
+        item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    }));
 
   const handleClearSearch = () => {
     setSearchTerm("");
