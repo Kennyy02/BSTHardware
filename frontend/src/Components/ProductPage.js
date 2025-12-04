@@ -2,6 +2,8 @@
 import React from 'react';
 import { Search, X } from "lucide-react";
 
+import { API_ORIGIN } from "../config";
+
 export const ProductsPage = ({
   searchTerm,
   setSearchTerm,
@@ -42,7 +44,7 @@ export const ProductsPage = ({
                   <li key={i}>
                     <div className="product-image-container">
                       <img
-                        src={item.image_url || imageMap[item.name] || "/placeholder.jpg"}
+                        src={item.image_url ? `${API_ORIGIN}/uploads/${item.image_url}` : (imageMap[item.name] || "/placeholder.jpg")}
                         alt={item.name}
                         className="product-image"
                       />

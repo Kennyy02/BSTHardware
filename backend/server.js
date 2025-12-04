@@ -288,16 +288,17 @@ app.put('/api/products/:id', authenticateAdmin, upload.single('image'), async (r
       return res.status(400).json({ error: 'Name, price, and category are required' });
     }
 
-    // Use uploaded file filename if exists, otherwise use image_url from body (if provided) or keep existing
-    // Logic: If file -> new file. If image_url string -> use that. 
-    // Note: SQL update below handles "keep existing" if we don't pass a value, but here we pass specific values.
-    
-    const finalImageUrl = req.file ? req.file.filename : (image_url || null);
-    const stock = stock_quantity ? parseInt(stock_quantity) : 0;
+    // Get existing product to preserve image_url if no new file is uploaded
+    const [existingProduct] = await db.query('SELECT image_url FROM products WHERE id = ?', [id]);
+    if (existingProduct.length === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
 
-    // Use dynamic query or COALESCE if we want to preserve existing values when null passed? 
-    // The previous implementation replaced image_url with null if no file.
-    // Here we will use the provided image_url or file.
+    // Use uploaded file filename if exists, otherwise use image_url from body, or preserve existing
+    const finalImageUrl = req.file 
+      ? req.file.filename 
+      : (image_url && image_url.trim() !== '' ? image_url : existingProduct[0].image_url);
+    const stock = stock_quantity ? parseInt(stock_quantity) : 0;
     
     const [result] = await db.query(
       'UPDATE products SET name = ?, price = ?, image_url = ?, category = ?, description = ?, stock_quantity = ? WHERE id = ?',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { API_BASE_URL } from "./config";
+import { API_BASE_URL, API_ORIGIN } from "./config";
 import "./App.css";
 import "./AuthForm.css";
 import "./Cart.css";
@@ -458,6 +458,10 @@ function App() {
       }
     };
 
+    const getProductImage = (product) => {
+      return product?.image_url ? `${API_ORIGIN}/uploads/${product.image_url}` : (imageMap[product?.name] || "/placeholder.jpg");
+    };
+
     return (
       <div className="materials-container">
         <h2>
@@ -496,7 +500,7 @@ function App() {
                   <li key={item.id}>
                     <div className="product-image-container">
                       <img
-                        src={imageMap[item.name] || "/placeholder.jpg"}
+                        src={getProductImage(item)}
                         alt={item.name}
                         className="product-image"
                       />

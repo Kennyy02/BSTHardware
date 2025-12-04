@@ -218,6 +218,13 @@ export const AdminDashboard = ({ products, setProducts, error, setError, handleL
     if (formData.image) {
       data.append("image", formData.image);
     }
+    // Send existing image_url when editing to preserve it if no new image is uploaded
+    if (isEditing) {
+      const currentProduct = products.find(p => p.id === formData.id);
+      if (currentProduct && currentProduct.image_url) {
+        data.append("image_url", currentProduct.image_url);
+      }
+    }
 
     try {
       const controller = new AbortController();
